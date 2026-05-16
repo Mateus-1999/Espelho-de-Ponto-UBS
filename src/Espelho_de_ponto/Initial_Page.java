@@ -5,24 +5,15 @@ import java.awt.EventQueue;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.*;
-
-import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import java.sql.Time;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Arrays;
-import java.util.Iterator;
+import java.util.Calendar;
 import java.awt.event.ItemListener;
 import java.awt.event.ItemEvent;
 import static java.time.temporal.ChronoUnit.*;
@@ -31,8 +22,9 @@ import java.awt.Color;
 import java.awt.Toolkit;
 import javax.swing.border.SoftBevelBorder;
 import javax.swing.border.BevelBorder;
-import javax.swing.border.MatteBorder;
-import javax.swing.border.CompoundBorder;
+import java.util.Date;
+import java.time.ZoneId;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class Initial_Page extends JFrame {
 
@@ -65,9 +57,13 @@ public class Initial_Page extends JFrame {
 	 */
 	public Initial_Page() {
 		setTitle("Cálculo de Horas Extras UBS");
-		setIconImage(Toolkit.getDefaultToolkit().getImage(Initial_Page.class.getResource("/Images/health-insurance (1).png")));
+		System.out.println(Initial_Page.class.getResource("/Images/health_insurance.png"));
+		setIconImage(new ImageIcon(
+			    "C:\\Users\\Admin\\eclipse-workspace\\Espelho-de-Ponto-UBS\\src\\Images\\health_insurance.png"
+			).getImage());
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 1174, 730);
+		setBounds(100, 100, 1174, 850);
+		setLocationRelativeTo(null);
 		contentPane = new JPanel();
 		contentPane.setBackground(Color.PINK);
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -96,33 +92,54 @@ public class Initial_Page extends JFrame {
 		btnFindExcel.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				String[] SheetNames = new String[99];
+
+		        String[] SheetNames = new String[99];
 		        String[][] Table = new String[99][99];
-		        
-				JFileChooser fileChooser = new JFileChooser();
-				fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-				fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-				int result = fileChooser.showOpenDialog(null);
-		        if (result == JFileChooser.APPROVE_OPTION) {
-		            File selectedDirectory = fileChooser.getSelectedFile();
-		            TxtPath.setText(selectedDirectory.getAbsolutePath());
+
+		        File selectedFile =
+		                CustomFileDialog.showDialog(null);
+
+		        if (selectedFile != null) {
+
+		            TxtPath.setText(selectedFile.getAbsolutePath());
+
+		            // Instance of ExcelReader class
+		            ExcelReader excel = new ExcelReader();
+
+		            // Read sheets
+		            SheetNames = excel.ReadSheet(
+		                    selectedFile.getAbsolutePath()
+		            );
+
+		            sheetCombo.setModel(
+		                    new DefaultComboBoxModel(SheetNames)
+		            );
+
+		            // Read excel content
+		            Table = excel.ReadExcel(
+		                    selectedFile.getAbsolutePath(),
+		                    0
+		            );
+
+		            String[] columnNames = {
+		                    "Column1",
+		                    "Column2",
+		                    "Column3",
+		                    "Column4",
+		                    "Column5",
+		                    "Column6",
+		                    "Column7",
+		                    "Column8",
+		                    "Column9",
+		                    "Column10"
+		            };
+
+		            DefaultTableModel model =
+		                    new DefaultTableModel(Table, columnNames);
+
+		            grid.setModel(model);
 		        }
-		        
-				
-				//Instance of ExcelReader class
-				ExcelReader excel = new ExcelReader();
-				
-				//Use the ExcelReader class function ReadSheet to get all sheets and add to jcombobox
-				SheetNames = excel.ReadSheet(TxtPath.getText());
-				sheetCombo.setModel(new DefaultComboBoxModel(SheetNames));
-				
-				//Use the ExcelReader class function ReadExcel to get all data from the sheet
-				Table = excel.ReadExcel(TxtPath.getText(), 0);
-				String[] columnNames = {"Column1","Column2","Column3","Column4","Column5","Column6","Column7","Column8","Column9","Column10"};
-									
-				DefaultTableModel model = new DefaultTableModel(Table, columnNames);
-				grid.setModel(model);
-			}
+		    }
 		});
 		btnFindExcel.setFont(new Font("Arial", Font.BOLD, 13));
 		btnFindExcel.setBounds(10, 132, 189, 29);
@@ -131,7 +148,7 @@ public class Initial_Page extends JFrame {
 		
 		grid = new JTable();
 		grid.setBorder(new LineBorder(new Color(0, 0, 0)));
-		grid.setBounds(235, 185, 896, 480);
+		grid.setBounds(235, 185, 896, 590);
 		contentPane.add(grid);
 		
 		sheetCombo = new JComboBox();
@@ -151,6 +168,7 @@ public class Initial_Page extends JFrame {
 				grid.setModel(model);
 			}
 		});
+		
 		sheetCombo.setBounds(10, 185, 189, 22);
 		contentPane.add(sheetCombo);
 		
@@ -188,11 +206,11 @@ public class Initial_Page extends JFrame {
 				String hoursFormatted, minutesFormatted;
 				
 				//get the interval of lines that have valid date
-				for (int i = 1; i <= 31; i++) {
+				for (int i = 1; i <= 40; i++) {
 					try {
 					  date = LocalDate.parse(grid.getValueAt(i, 1).toString().substring(03, 13) , DATE_TIME_FORMATTER);
 					  line = i;
-					} catch (DateTimeParseException f) {
+					} catch (Exception f) {
 					  f.printStackTrace();
 					  break;
 					}
@@ -208,23 +226,58 @@ public class Initial_Page extends JFrame {
 				} else if (rdbtnACS.isSelected()) {
 					columnBegin = 2;
 					columnEnd = 3;
-				} 
+				}
 				
-				
-				for (int i = 2; i <= line; i++) {
-					//if the cell of begin of day is empty go to next line grid
-					if (grid.getValueAt(i, columnBegin).toString().isEmpty() || grid.getValueAt(i, columnEnd).toString().isEmpty()) {
-						continue;
-					} else {
-						try { 
-							LocalTime beginOfDay = LocalTime.parse( grid.getValueAt(i, columnBegin).toString());
-							LocalTime endOfDay = LocalTime.parse( grid.getValueAt(i, columnEnd).toString());
-							if (beginOfDay.until(endOfDay, MINUTES) - 540 > 0)
-								minutesOvertime += beginOfDay.until(endOfDay, MINUTES) - 540;
-						} catch(Exception except){
-							continue;
-						}
+				//
+				if (rdbtnMedico.isSelected()) {	
+					for (int i = 1; i <= line; i++) {
+						date = LocalDate.parse(grid.getValueAt(i, 1).toString().substring(03, 13) , DATE_TIME_FORMATTER);
+						int dayOfWeek = getDayOfWeek(date);
+						if (dayOfWeek == 6)
+							columnEnd = 3;
+						else
+							columnEnd = 5;
 						
+						//if the cell of begin of day is empty go to next line grid
+						if (grid.getModel().getValueAt(i, columnBegin) == null || grid.getModel().getValueAt(i, columnEnd) == null ||
+								grid.getValueAt(i, columnBegin).toString().isEmpty() || grid.getValueAt(i, columnEnd).toString().isEmpty()) {
+							continue;
+						} else {
+							try {								
+								if (dayOfWeek == 6/*Sexta*/) {
+									LocalTime beginOfDay = LocalTime.parse( grid.getValueAt(i, columnBegin).toString());
+									LocalTime endOfDay = LocalTime.parse( grid.getValueAt(i, 3).toString());
+									if (beginOfDay.until(endOfDay, MINUTES) - 240 > 0)
+										minutesOvertime += beginOfDay.until(endOfDay, MINUTES) - 240;
+								} else {
+									LocalTime beginOfDay = LocalTime.parse( grid.getValueAt(i, columnBegin).toString());
+									LocalTime endOfDay = LocalTime.parse( grid.getValueAt(i, columnEnd).toString());
+									if (beginOfDay.until(endOfDay, MINUTES) - 540 > 0)
+										minutesOvertime += beginOfDay.until(endOfDay, MINUTES) - 540;
+								}
+							} catch(Exception except){
+								continue;
+							}
+							
+						}
+					}
+				} else {
+					for (int i = 1; i <= line; i++) {
+						//if the cell of begin of day is empty go to next line grid
+						if (grid.getModel().getValueAt(i, columnBegin) == null || grid.getModel().getValueAt(i, columnEnd) == null ||
+								grid.getValueAt(i, columnBegin).toString().isEmpty() || grid.getValueAt(i, columnEnd).toString().isEmpty()) {
+							continue;
+						} else {
+							try { 
+								LocalTime beginOfDay = LocalTime.parse( grid.getValueAt(i, columnBegin).toString().substring(0,5));
+								LocalTime endOfDay = LocalTime.parse( grid.getValueAt(i, columnEnd).toString().substring(0,5));
+								if (beginOfDay.until(endOfDay, MINUTES) - 540 > 0)
+									minutesOvertime += beginOfDay.until(endOfDay, MINUTES) - 540;
+							} catch(Exception except){
+								continue;
+							}
+							
+						}
 					}
 				}
 				
@@ -248,25 +301,39 @@ public class Initial_Page extends JFrame {
 		contentPane.add(btnCalc);
 		
 		JLabel lblNewLabel_2 = new JLabel("");
-		lblNewLabel_2.setIcon(new ImageIcon(Initial_Page.class.getResource("/Images/health-insurance (1).png")));
+		lblNewLabel_2.setIcon(new ImageIcon(
+			    "C:\\Users\\Admin\\eclipse-workspace\\Espelho-de-Ponto-UBS\\src\\Images\\health_insurance.png"
+				));
 		lblNewLabel_2.setBounds(71, 4, 77, 74);
 		contentPane.add(lblNewLabel_2);
 		
 		JLabel lblCreatedBy = new JLabel("Criado Por: Mateus Victorio");
 		lblCreatedBy.setFont(new Font("Tahoma", Font.ITALIC, 11));
-		lblCreatedBy.setBounds(10, 617, 189, 14);
+		lblCreatedBy.setBounds(10, 701, 189, 14);
 		contentPane.add(lblCreatedBy);
 		
-		JLabel lblCreatedDate = new JLabel("Data: 04/09/2024");
+		JLabel lblCreatedDate = new JLabel("Data de criação: 04/09/2024");
 		lblCreatedDate.setFont(new Font("Tahoma", Font.ITALIC, 11));
-		lblCreatedDate.setBounds(10, 633, 189, 14);
+		lblCreatedDate.setBounds(10, 719, 189, 14);
 		contentPane.add(lblCreatedDate);
 		
-		JLabel lblSys_Version = new JLabel("Versão: 1.0.0");
+		JLabel lblSys_Version = new JLabel("Versão: 1.2.0");
 		lblSys_Version.setFont(new Font("Tahoma", Font.ITALIC, 11));
-		lblSys_Version.setBounds(10, 651, 189, 14);
-		contentPane.add(lblSys_Version);
+		lblSys_Version.setBounds(9, 756, 189, 14);
+		contentPane.add(lblSys_Version);		
 		
+		JLabel lblDataDeModificao = new JLabel("Data de modificação: 15/05/2026");
+		lblDataDeModificao.setFont(new Font("Tahoma", Font.ITALIC, 11));
+		lblDataDeModificao.setBounds(10, 738, 189, 14);
+		contentPane.add(lblDataDeModificao);
+	}
+	
+	private Integer getDayOfWeek (LocalDate date) {
+		Date datefinal = Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+		Calendar c = Calendar.getInstance();
+		c.setTime(datefinal);
+		int dayOfWeek = c.get(Calendar.DAY_OF_WEEK);
 		
+		return dayOfWeek;
 	}
 }
